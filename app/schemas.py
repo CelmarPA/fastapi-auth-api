@@ -28,3 +28,12 @@ class Token(BaseModel):
 
 class Message(BaseModel):
     detail: str
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetInput(BaseModel):
+    token: str
+    new_password: str

@@ -1,7 +1,11 @@
 from pydantic_settings import BaseSettings
+from pydantic import Field
+from typing import List
 
 
 class Settings(BaseSettings):
+    ENVIRONMENT: str = "development"
+
     # Security
     SECRET_KEY: str
     ALGORITHM: str = 'HS256'
@@ -9,10 +13,17 @@ class Settings(BaseSettings):
     # Token lifetimes
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    DATABASE_URL: str
 
     # Database
-    DATABASE_URL: str = "sqlite:///./auth.db"
+    DATABASE_URL: str
+
+    # CORS
+    CORS_ORIGINS: List[str] = Field(default_factory=list)
+
+    # Brevo API
+    BREVO_API_KEY: str
+    EMAIL_FROM: str
+    EMAIL_FROM_NAME: str
 
     class Config:
         env_file = ".env"

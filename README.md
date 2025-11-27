@@ -36,17 +36,26 @@ A production-ready authentication API built with **FastAPI**, featuring:
 
 ### 📁 Project Structure
 
-    app/
-     ├── core/
-     │    ├── config.py
-     │    ├── security.py
-     │    └── tokens.py
-     ├── routers/
-     │    └── auth.py
-     ├── models/
-     │    └── user.py
-     ├── database.py
-     └── main.py
+    auth_api/
+    │
+    ├── app/
+    │ ├── core/
+    │ │ ├── config.py
+    │ │ └── security.py
+    │ ├── routers/
+    │ │ └── auth.py
+    │ ├── models/
+    │ │ └── user.py
+    │ ├── database.py
+    │ ├── main.py
+    │ └── init.py
+    │
+    ├── tests/
+    │
+    ├── .env.example
+    ├── .gitignore
+    ├── requirements.txt
+    └── README.md
 
 ## Installation
 

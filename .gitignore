@@ -1,10 +1,81 @@
+# ============================
+# Python
+# ============================
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+.env.*
+
+
+# ============================
+# Pydantic / Settings
+# ============================
+*.env
+!*.env.example
+
+
+# ============================
+# SQLite database
+# ============================
+*.db
+*.sqlite
+*.sqlite3
+
+
+# ============================
+# IDEs & Editors
+# ============================
+
+# VSCode
+.vscode/
+.history/
+*.code-workspace
+
+# PyCharm / IntelliJ
+.idea/
+*.iml
+
+
+# ============================
+# Build & Distribution
+# ============================
+build/
+dist/
+*.egg-info/
+.eggs/
+
+
+# ============================
+# Logs
+# ============================
+*.log
+logs/
+log.txt
+
+
+# ============================
+# Python byte-compiled files
+# ============================
 *.pyo
 *.pyd
-env/
-venv/
-.env
-.idea/
-.vscode/
-*.sqlite3
+
+
+# ============================
+# OS-specific 
+# ============================
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+
+# ============================
+# Uvicorn / FastAPI Cache
+# ============================
+.cache/
