@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Body, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Request, Query
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from slowapi.util import get_remote_address
+from typing import Optional
 
+from ..core.security_log import log_security_event
 from ..core.bruteforce import clear_failures, record_login_attempts
 from ..core.rate_limit_custom import too_many_resets_email, too_many_resets_ip, log_reset_attempt
 from ..core.email import send_email
@@ -10,12 +12,14 @@ from ..core.rate_limit import limiter
 from ..core.reset import create_reset_token, mark_token_used, verify_reset_token
 from ..database import get_db
 from ..models import User
-from ..schemas import UserCreate, UserResponse, Login, Token, Message, PasswordResetRequest, PasswordResetInput
+from ..schemas import UserCreate, UserResponse, Login, Token, Message, PasswordResetRequest, PasswordResetInput, \
+    SecurityLogList, SecurityLogEntry
 from ..core.security import hash_password, verify_password, create_access_token, get_current_user
 from ..core.permissions import require_role
 from ..core.tokens import generate_refresh_token_plain, hash_token, make_refresh_record
 
-router = APIRouter(prefix="/auth", tags=["Auth"])
+
+router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
 @router.post("/register", response_model=UserResponse)
@@ -65,6 +69,15 @@ def login(request: Request, user_data: Login, db: Session = Depends(get_db)) -> 
 
     # 1. Anti-bruteforce - IP
     if too_many_resets_ip(db, client_ip):
+        log_security_event(
+            db=db,
+            action="login_blocked_ip",
+            status="fail",
+            detail="Too many attempts from this IP",
+            request=request,
+            email=email
+        )
+
         raise HTTPException(
             status_code=429,
             detail="Too many failed attempts from this IP. Try again later."
@@ -72,6 +85,15 @@ def login(request: Request, user_data: Login, db: Session = Depends(get_db)) -> 
 
     # 2. Anti-bruteforce - Email
     if too_many_resets_email(db, user_data.email):
+        log_security_event(
+            db=db,
+            action="login_blocked_email",
+            status="fail",
+            detail="Too many attempts for this email",
+            request=request,
+            email=email
+        )
+
         raise HTTPException(
             status_code=429,
             detail="Too many failed attempts for this email. Try again later."
@@ -83,6 +105,16 @@ def login(request: Request, user_data: Login, db: Session = Depends(get_db)) -> 
     # User does not exist or Incorrect password  → logs failure before returning error
     if not user or not verify_password(user_data.password, user.hashed_password):
         record_login_attempts(db, email, client_ip, success=False)
+
+        log_security_event(
+            db=db,
+            action="login_failed",
+            status="fail",
+            detail="Invalid credentials",
+            request=request,
+            email=email
+        )
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
@@ -90,6 +122,16 @@ def login(request: Request, user_data: Login, db: Session = Depends(get_db)) -> 
 
     # Login Ok - Clear failures
     clear_failures(db, user_data.email, client_ip)
+
+    log_security_event(
+        db=db,
+        action="login_success",
+        status="success",
+        detail="User logged in successfully",
+        request=request,
+        user_id=user.id,
+        email=email
+    )
 
     # Register success
     record_login_attempts(db, user_data.email, client_ip, success=True)

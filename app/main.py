@@ -4,17 +4,17 @@ from slowapi.middleware import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
 
-from .models import LoginAttempt
 from .core.rate_limit import limiter
 from .core.config import settings
 from .database import engine, Base
-from .routers import auth
-
+from .routers import auth, admin
 
 app = FastAPI()
 
 # attach limiter to app
 app.state.limiter = limiter
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -23,37 +23,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Middleware of SlowAPI
+app.add_middleware(SlowAPIMiddleware)
 
-# optional: custom handler for rate limit exceeded
-@app.exception_handler(RateLimitExceeded)
-def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
-    return JSONResponse(
-        status_code=429,
-        content={"detail": "Too many requests, try again later."}
-    )
-
-
-
-# Origins allowed — adjustments for your frontends (production + development)
-origins = [
-    "http://localhost:3000",     # exemplo React dev
-    "http://127.0.0.1:3000",
-    # "https://your-production-domain.com"
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins= origins,     # do not leave ["*"] in production
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["*"]
-
-)
-
-# Create the tables
+# DB
 Base.metadata.create_all(bind=engine)
 
 app.include_router(auth.router)
+app.include_router(admin.router)
 
 @app.get("/")
 def root():
