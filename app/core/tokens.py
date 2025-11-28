@@ -2,16 +2,23 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from ..core.config import settings
-from ..models import RefreshToken
+from app.core.config import settings
+from app.models import RefreshToken
 
 
 REFRESH_TOKEN_EXPIRE_DAYS = settings.REFRESH_TOKEN_EXPIRE_DAYS
 
 
 def generate_refresh_token_plain() -> str:
-    # secure opaque token
-    return secrets.token_urlsafe(64)
+    plain = secrets.token_urlsafe(48)
+
+    expires_at = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+
+    return {
+        "plain": plain,
+        "hash": hash_token(plain),
+        "expires_at": expires_at
+    }
 
 
 def hash_token(token: str) -> str:

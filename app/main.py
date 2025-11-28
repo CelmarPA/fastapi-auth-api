@@ -1,13 +1,11 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.middleware import SlowAPIMiddleware
-from slowapi.errors import RateLimitExceeded
-from fastapi.responses import JSONResponse
 
-from .core.rate_limit import limiter
-from .core.config import settings
-from .database import engine, Base
-from .routers import auth, admin
+from app.core.config import settings
+from app.core.rate_limit import limiter
+from app.database import engine, Base
+from app.routers import auth, admin_users
 
 app = FastAPI()
 
@@ -30,7 +28,7 @@ app.add_middleware(SlowAPIMiddleware)
 Base.metadata.create_all(bind=engine)
 
 app.include_router(auth.router)
-app.include_router(admin.router)
+app.include_router(admin_users.router)
 
 @app.get("/")
 def root():

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm  import Session
-from fastapi import HTTPException
-from ..models import PasswordResetLog
+
+from app.models import PasswordResetLog
 
 
 def too_many_resets_email(db: Session, email: str, minutes: int = 10) -> bool:
@@ -32,7 +32,6 @@ def too_many_resets_ip(db: Session, ip: str, minutes: int = 10, limit: int = 3) 
     )
 
     return count >= limit
-
 
 
 def log_reset_attempt(db: Session, email: str, ip: str) -> None:

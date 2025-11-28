@@ -5,9 +5,9 @@ from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
-from ..core.config import settings
-from ..database import get_db
-from ..models import User
+from app.core.config import settings
+from app.database import get_db
+from app.models import User
 
 
 security = HTTPBearer()

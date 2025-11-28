@@ -22,8 +22,8 @@ class Settings(BaseSettings):
 
     # Brevo API
     BREVO_API_KEY: str
-    EMAIL_FROM: str
-    EMAIL_FROM_NAME: str
+    MAIL_SENDER: str
+    FRONTEND_URL: str
 
     class Config:
         env_file = ".env"

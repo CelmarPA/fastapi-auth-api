@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
-from ..models import LoginAttempt
+from app.models import LoginAttempt
 
 
 # Register attempts
