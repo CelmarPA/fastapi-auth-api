@@ -4,6 +4,7 @@ from .login_attempt import LoginAttempt
 from .security_log import SecurityLog
 from .password_reset_log import PasswordResetLog
 from .refresh_token import RefreshToken
+from .products import Product
 
 __all__ = [
     "User",
@@ -11,5 +12,6 @@ __all__ = [
     "LoginAttempt",
     "SecurityLog",
     "PasswordResetLog",
-    "RefreshToken"
+    "RefreshToken",
+    "Product"
 ]

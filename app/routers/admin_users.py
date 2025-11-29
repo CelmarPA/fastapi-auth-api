@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.permissions import admin_required
+from app.core.permissions import admin_required, superadmin_required
 from app.database import get_db
 from app.schemas.user_schema import UserListItem, UserDetail, UserUpdate
 from app.services.user_service import UserService
@@ -61,3 +61,18 @@ def enable_user(
 
     return enabled
 
+
+@router.delete("/{user_id}", response_model=UserDetail, dependencies=[Depends(superadmin_required)])
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+):
+    user = UserService.get_user(db, user_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db.delete(user)
+    db.commit()
+
+    return {"detail": f"User {user_id} deleted"}

@@ -36,4 +36,15 @@ def admin_required(user: User = Depends(get_current_user)):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed"
         )
+
+    return user
+
+
+def superadmin_required(user: User = Depends(get_current_user)):
+    if user.role not in ["superadmin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not allowed"
+        )
+
     return user

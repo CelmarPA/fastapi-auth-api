@@ -1,3 +1,5 @@
+# main.py
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.middleware import SlowAPIMiddleware
@@ -5,7 +7,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.core.config import settings
 from app.core.rate_limit import limiter
 from app.database import engine, Base
-from app.routers import auth, admin_users
+from app.routers import auth, admin_users, products
 
 app = FastAPI()
 
@@ -29,6 +31,7 @@ Base.metadata.create_all(bind=engine)
 
 app.include_router(auth.router)
 app.include_router(admin_users.router)
+app.include_router(products.router)
 
 @app.get("/")
 def root():
