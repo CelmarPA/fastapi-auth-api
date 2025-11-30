@@ -76,3 +76,8 @@ def delete_user(
     db.commit()
 
     return {"detail": f"User {user_id} deleted"}
+
+
+@router.get("/dashboard", dependencies=[Depends(admin_required)])
+def admin_dashboard():
+    return {"message": "Admin dashboard"}

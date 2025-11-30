@@ -1,11 +1,20 @@
 # app/routers/auth.py
 from fastapi import APIRouter, Depends, Request, Body, status, HTTPException
+from jose import jwt
+from pydantic import EmailStr
 from sqlalchemy.orm import Session
 
+from app.core.tokens import create_email_verification_token
 from app.database import get_db
 from app.core.security import get_current_user
 from app.core.rate_limit import limiter
+from app.core.config import settings
+from app.models import User
+from app.repositories import UserRepository
+from app.schemas.auth_schema import LogoutRequest
+from app.schemas.token_schema import RefreshTokenRequest
 from app.services.auth_service import AuthService
+from app.services.email_service import EmailService
 
 from app.schemas import (
     UserCreate, UserResponse, Login, Token, Message,
@@ -32,6 +41,9 @@ def register_user(user_data: UserCreate, request: Request, db: Session = Depends
 
         return user
 
+    except HTTPException:
+        raise
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -41,7 +53,11 @@ def register_user(user_data: UserCreate, request: Request, db: Session = Depends
 
 @router.post("/login", response_model=Token)
 @limiter.limit("5/minute")
-def login(request: Request, user_data: Login, db: Session = Depends(get_db)):
+def login(
+    request: Request,
+    user_data: Login,
+    db: Session = Depends(get_db)
+):
     """
     Login with email + password. Returns access + refresh tokens.
     Rate-limited by decorator.
@@ -57,6 +73,9 @@ def login(request: Request, user_data: Login, db: Session = Depends(get_db)):
 
         return result
 
+    except HTTPException:
+        raise
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -65,7 +84,7 @@ def login(request: Request, user_data: Login, db: Session = Depends(get_db)):
 
 
 @router.post("/refresh", response_model=Token)
-def refresh_token(refresh_token_: str = Body(..., embed=True), request: Request = None, db: Session = Depends(get_db)) -> Token:
+def refresh_token(payload: RefreshTokenRequest, request: Request, db: Session = Depends(get_db)) -> Token:
     """
     Rotate refresh token and return new access + refresh token.
     """
@@ -73,11 +92,14 @@ def refresh_token(refresh_token_: str = Body(..., embed=True), request: Request 
     try:
         result = AuthService.refresh(
             db=db,
-            refresh_token=refresh_token_,
+            refresh_token=payload.refresh_token,
             request=request
         )
 
         return result
+
+    except HTTPException:
+        raise
 
     except Exception as e:
         raise HTTPException(
@@ -87,7 +109,7 @@ def refresh_token(refresh_token_: str = Body(..., embed=True), request: Request 
 
 
 @router.post("/logout", response_model=Message)
-def logout(refresh_token_: str = Body(..., embed=True), request: Request = None, db: Session = Depends(get_db)) -> Message:
+def logout(data: LogoutRequest, request: Request, db: Session = Depends(get_db)) -> Message:
     """
     Logout by revoking the provided refresh token.
     """
@@ -95,11 +117,14 @@ def logout(refresh_token_: str = Body(..., embed=True), request: Request = None,
     try:
         result = AuthService.logout(
             db=db,
-            refresh_token=refresh_token_,
+            refresh_token=data.refresh_token,
             request=request
         )
 
         return result
+
+    except HTTPException:
+        raise
 
     except Exception as e:
         raise HTTPException(
@@ -123,6 +148,9 @@ def request_password_reset(data: PasswordResetRequest, request: Request, db: Ses
 
         return result
 
+    except HTTPException:
+        raise
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -145,6 +173,9 @@ def reset_password(data: PasswordResetInput, request: Request, db: Session = Dep
 
         return result
 
+    except HTTPException:
+        raise
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -161,7 +192,47 @@ def me(current_user=Depends(get_current_user)):
     return current_user
 
 
+@router.post("/send-verification-email", response_model=Message)
+def send_email_verification(email: EmailStr = Body(...), db: Session = Depends(get_db)):
+    email = str(email).lower().strip()
 
+    user = UserRepository.get_by_email(db, email)
+
+    if not user:
+        return {"detail": "If the email exists, verification email was sent"}
+
+    if user.is_verified:
+        return {"detail": "Email already verified"}
+
+    token = create_email_verification_token(user.id)
+
+    EmailService.send_verification_email(user.email, token)
+
+    return {"detail": "Verification email sent"}
+
+
+@router.get("/verify-email", response_model=Message)
+def verify_email(token: str, db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        user_id = int(payload["sub"])
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid or expired token: {e}")
+
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.is_verified = True
+    db.commit()
+    db.refresh(user)
+
+    return {"detail": "Email verified successfully"}
 
 # @router.post("/admin/dashboard")
 # def admin_dashboard(current_user: User = Depends(require_role("admin"))):

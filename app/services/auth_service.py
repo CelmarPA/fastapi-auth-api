@@ -104,6 +104,20 @@ class AuthService:
 
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials")
 
+        if not user.is_verified:
+            record_login_attempts(db, email, ip, success=False)
+
+            log_security_event(
+                db,
+                "login_failed",
+                "fail",
+                "Email not verified",
+                request,
+                email=email
+            )
+
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Email not verified")
+
         # Success
         clear_failures(db, email, ip)
         record_login_attempts(db, email, ip, success=True)

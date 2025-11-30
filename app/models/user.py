@@ -11,6 +11,8 @@ class User(Base):
     email= Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
     role = Column(String, default="user")
+    is_verified = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
+
 
     refresh_tokens = relationship("RefreshToken", back_populates="user")

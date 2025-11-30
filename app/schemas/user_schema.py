@@ -1,11 +1,14 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from typing import Optional
 
 
 class UserBase(BaseModel):
     email: EmailStr
     role: str
+    is_verified: bool
     is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserListItem(UserBase):
@@ -18,16 +21,16 @@ class UserDetail(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-class UserUpdate(UserBase):
+class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
 
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
     email: EmailStr
-    password: str
-    role: str = "user"
+    password: str = Field(min_length=6)
+    role: Optional[str] = None
 
 
 class UserResponse(BaseModel):
@@ -35,5 +38,4 @@ class UserResponse(BaseModel):
     email: EmailStr
     role: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

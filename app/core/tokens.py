@@ -2,6 +2,8 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 
+from jose import jwt
+
 from app.core.config import settings
 from app.models import RefreshToken
 
@@ -42,3 +44,13 @@ def make_refresh_record(db, user_id: int, plain_token: str) -> RefreshToken:
     db.refresh(rec)
 
     return rec
+
+
+def create_email_verification_token(user_id: int):
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+
+    return jwt.encode(
+        {"sub": str(user_id), "exp": expires_at},
+        settings.SECRET_KEY,
+        algorithm="HS256"
+    )

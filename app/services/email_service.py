@@ -10,8 +10,13 @@ class EmailService:
         url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
 
         payload = {
-            "sender": {"name": "Auth API", "email": settings.MAIL_SENDER},
-            "to": [{"email": to_email}],
+            "sender": {
+                "name": "Auth API",
+                "email": settings.MAIL_SENDER
+            },
+            "to": [
+                {"email": to_email}
+            ],
             "subject": "Password Reset Request",
             "htmlContent": f"""
                     <h2>Password Reset</h2>
@@ -19,6 +24,40 @@ class EmailService:
                     <a href="{url}">Reset Password</a>
                     <p>This link expires in 15 minutes.</p>
                 """
+        }
+
+        headers = {
+            "api-key": settings.BREVO_API_KEY,
+            "Content-Type": "application/json"
+        }
+
+        response = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            json=payload,
+            headers=headers
+        )
+
+        return response.status_code == 201
+
+    @staticmethod
+    def send_verification_email(to_email: str, token: str):
+        url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+
+        payload = {
+            "sender": {
+                "name": "Auth API",
+                "email": settings.MAIL_SENDER
+            },
+            "to": [
+                {"email": to_email}
+            ],
+            "subject": "Verify Your Email Address",
+            "htmlContent": f"""
+                <h2>Email Verification</h2>
+                <p>Click the link below to verify your email address:</p>
+                <a href="{url}">Verify Email</a>
+                <p>This link expires in 15 minutes.</p>
+            """
         }
 
         headers = {
