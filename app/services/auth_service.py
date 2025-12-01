@@ -1,7 +1,23 @@
 # app/services/auth_service.py
 
+"""
+Authentication Service
+----------------------
+
+Provides core authentication operations:
+
+- User registration with automatic role assignment
+- Login with brute-force protection
+- Access and refresh token management
+- Logout and token revocation
+- Password reset requests and password updates
+
+All security events are logged via `log_security_event`.
+"""
+
 from fastapi import HTTPException, status, Request
 from sqlalchemy.orm import Session
+from typing import Any, Dict
 
 from app.repositories import UserRepository
 from app.repositories import TokenRepository
@@ -22,12 +38,38 @@ from app.core.bruteforce import (
 
 
 class AuthService:
+    """
+    Service class providing authentication-related methods.
+    """
 
     # ============================
     #           REGISTER
     # ============================
     @staticmethod
-    def register(db: Session, email: str, password: str, request: Request):
+    def register(db: Session, email: str, password: str, request: Request) -> Any:
+        """
+        Register a new user. Role assignment based on total user count:
+        - First user => superadmin
+        - Second user => admin
+        - Others => user
+
+        :param db: Active database session.
+        :type db: Session
+
+        :param email: Email address of the new user.
+        :type email: str
+
+        :param password: Plain text password of the new user.
+        :type password: str
+
+        :param request: FastAPI request object for logging.
+        :type request: Request
+
+        :return: Created user instance.
+        :rtype: User
+
+        :raises HTTPException: If email is already registered.
+        """
 
         email = email.lower().strip()
 
@@ -58,7 +100,30 @@ class AuthService:
     #           Login
     # ============================
     @staticmethod
-    def login(db: Session, email: str, password: str, ip: str, request: Request):
+    def login(db: Session, email: str, password: str, ip: str, request: Request) -> Dict[str, str]:
+        """
+        Authenticate user with email and password. Applies brute-force protection.
+
+        :param db: Active database session.
+        :type db: Session
+
+        :param email: User email.
+        :type email: str
+
+        :param password: User password.
+        :type password: str
+
+        :param ip: Client IP address.
+        :type ip: str
+
+        :param request: FastAPI request object for logging.
+        :type request: Request
+
+        :return: Dictionary containing access_token, token_type, and refresh_token.
+        :rtype: dict[str, str]
+
+        :raises HTTPException: If credentials are invalid, email not verified, or brute-force limits exceeded.
+        """
 
         email = email.lower().strip()
 
@@ -147,8 +212,24 @@ class AuthService:
     #       REFRESH TOKEN
     # ============================
     @staticmethod
-    def refresh(db: Session, refresh_token: str, request: Request):
+    def refresh(db: Session, refresh_token: str, request: Request) -> Dict[str, str]:
+        """
+        Rotate refresh token and issue a new access token.
 
+        :param db: Active database session.
+        :type db: Session
+
+        :param refresh_token: Refresh token string.
+        :type refresh_token: str
+
+        :param request: FastAPI request object for logging.
+        :type request: Request
+
+        :return: Dictionary containing new access_token, token_type, and refresh_token.
+        :rtype: dict[str, str]
+
+        :raises HTTPException: If refresh token is invalid.
+        """
         token_data = TokenRepository.find_valid(db, refresh_token)
 
         if not token_data:
@@ -188,39 +269,72 @@ class AuthService:
     #            LOGOUT
     # ============================
     @staticmethod
-    def logout(db: Session, refresh_token: str, request: Request):
+    def logout(db: Session, refresh_token: str, request: Request) -> dict:
+        """
+        Revoke a refresh token to log the user out.
 
-         token = TokenRepository.get_by_plain(db, refresh_token)
+        :param db: Active database session.
+        :type db: Session
 
-         if not token:
-             log_security_event(
-                 db,
-                 "logout_invalid",
-                 "fail",
-                 "Invalid refresh token",
-                 request
-             )
+        :param refresh_token: Refresh token string.
+        :type refresh_token: str
 
-             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
+        :param request: FastAPI request object for logging.
+        :type request: Request
 
-         TokenRepository.revoke(db, token)
+        :return: Confirmation message.
+        :rtype: dict
 
-         log_security_event(
-             db,
-             "logout_success",
-             "success",
-             "User logged out",
-             request,
-             user_id=token.user_id
-         )
+        :raises HTTPException: If refresh token is invalid.
+        """
 
-         return {"detail": "Logged out successfully"}
+        token = TokenRepository.get_by_plain(db, refresh_token)
+
+        if not token:
+            log_security_event(
+                db,
+                "logout_invalid",
+                "fail",
+                "Invalid refresh token",
+                request
+            )
+
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
+
+        TokenRepository.revoke(db, token)
+
+        log_security_event(
+            db,
+            "logout_success",
+            "success",
+            "User logged out",
+            request,
+            user_id=token.user_id
+        )
+
+        return {"detail": "Logged out successfully"}
 
     # ============================
     #     REQUEST PASSWORD RESET
     # ============================
     @staticmethod
-    def request_password_reset(db: Session, email: str, request: Request):
+    def request_password_reset(db: Session, email: str, request: Request) -> dict:
+        """
+        Generate password reset token and send email. Always returns success message
+        without revealing existence of the user.
+
+        :param db: Active database session.
+        :type db: Session
+
+        :param email: Email to send reset link to.
+        :type email: str
+
+        :param request: FastAPI request object for logging.
+        :type request: Request
+
+        :return: Confirmation message.
+        :rtype: dict
+        """
 
         email = email.lower().strip()
 
@@ -247,7 +361,27 @@ class AuthService:
     #         RESET PASSWORD
     # ============================
     @staticmethod
-    def reset_password(db: Session,  token: str, new_password: str, request: Request):
+    def reset_password(db: Session,  token: str, new_password: str, request: Request) -> dict:
+        """
+        Reset user's password using a valid reset token.
+
+        :param db: Active database session.
+        :type db: Session
+
+        :param token: Reset token string.
+        :type token: str
+
+        :param new_password: New password to set.
+        :type new_password: str
+
+        :param request: FastAPI request object for logging.
+        :type request: Request
+
+        :return: Confirmation message.
+        :rtype: dict
+
+        :raises HTTPException: If reset token is invalid or expired.
+        """
 
         user = ResetRepository.get_valid(db, token)
 

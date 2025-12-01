@@ -1,4 +1,23 @@
 # app/routers/auth.py
+
+"""
+Authentication Router
+---------------------
+
+This module exposes all authentication-related endpoints, including:
+
+- User registration
+- Login with token generation
+- Refresh token rotation
+- Logout with refresh token revocation
+- Password reset flows (request + reset)
+- Email verification
+- Fetching the authenticated user's profile
+
+All business logic is delegated to AuthService, keeping the router focused
+on request/response responsibilities.
+"""
+
 from fastapi import APIRouter, Depends, Request, Body, status, HTTPException
 from jose import jwt
 from pydantic import EmailStr
@@ -28,7 +47,23 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register_user(user_data: UserCreate, request: Request, db: Session = Depends(get_db)):
     """
-    Register a new user. First user => superadmin, second => admin, rest => user.
+    Register a new user.
+
+    First user created -> superadmin
+    Second user created -> admin
+    All others -> user
+
+    :param user_data: Registration input containing email + password.
+    :type user_data: UserCreate
+
+    :param request: Incoming HTTP request.
+    :type request: Request
+
+    :param db: Active database session.
+    :type db: Session
+
+    :return: Newly created user.
+    :rtype: UserResponse
     """
 
     try:
@@ -59,8 +94,22 @@ def login(
     db: Session = Depends(get_db)
 ):
     """
-    Login with email + password. Returns access + refresh tokens.
-    Rate-limited by decorator.
+    Authenticate a user using email and password.
+
+    Returns both access and refresh tokens.
+    Protected by rate-limiting (5 per minute).
+
+    :param request: Incoming HTTP request (used for logging and rate-limit context).
+    :type request: Request
+
+    :param user_data: User login credentials.
+    :type user_data: Login
+
+    :param db: Active database session.
+    :type db: Session
+
+    :return: JWT access token and refresh token.
+    :rtype: Token
     """
 
     try:
@@ -86,7 +135,19 @@ def login(
 @router.post("/refresh", response_model=Token)
 def refresh_token(payload: RefreshTokenRequest, request: Request, db: Session = Depends(get_db)) -> Token:
     """
-    Rotate refresh token and return new access + refresh token.
+    Rotate and validate a refresh token, returning new access and refresh tokens.
+
+    :param payload: The refresh token input.
+    :type payload: RefreshTokenRequest
+
+    :param request: Incoming HTTP request.
+    :type request: Request
+
+    :param db: Active database session.
+    :type db: Session
+
+    :return: New access + refresh tokens.
+    :rtype: Token
     """
 
     try:
@@ -111,7 +172,19 @@ def refresh_token(payload: RefreshTokenRequest, request: Request, db: Session = 
 @router.post("/logout", response_model=Message)
 def logout(data: LogoutRequest, request: Request, db: Session = Depends(get_db)) -> Message:
     """
-    Logout by revoking the provided refresh token.
+    Logout the user by revoking the provided refresh token.
+
+    :param data: Request containing refresh token.
+    :type data: LogoutRequest
+
+    :param request: Incoming HTTP request.
+    :type request: Request
+
+    :param db: Active database session.
+    :type db: Session
+
+    :return: Success message.
+    :rtype: Message
     """
 
     try:
@@ -136,7 +209,21 @@ def logout(data: LogoutRequest, request: Request, db: Session = Depends(get_db))
 @router.post("/request-password-reset", response_model=Message)
 def request_password_reset(data: PasswordResetRequest, request: Request, db: Session = Depends(get_db)) -> Message:
     """
-    Request a password reset. Always returns success-like message (doesn't reveal existence).
+    Request a password reset email.
+
+    Always returns a generic success message to avoid account enumeration.
+
+    :param data: Contains the email to send the reset link to.
+    :type data: PasswordResetRequest
+
+    :param request: Incoming HTTP request.
+    :type request: Request
+
+    :param db: Active database session.
+    :type db: Session
+
+    :return: Generic success message.
+    :rtype: Message
     """
 
     try:
@@ -161,8 +248,21 @@ def request_password_reset(data: PasswordResetRequest, request: Request, db: Ses
 @router.post("/reset-password", response_model=Message)
 def reset_password(data: PasswordResetInput, request: Request, db: Session = Depends(get_db)) -> Message:
     """
-    Reset password using token and new_password.
+    Reset a user's password using a password reset token.
+
+    :param data: Contains reset token + new password.
+    :type data: PasswordResetInput
+
+    :param request: Incoming HTTP request.
+    :type request: Request
+
+    :param db: Active database session.
+    :type db: Session
+
+    :return: Confirmation message.
+    :rtype: Message
     """
+
     try:
         result = AuthService.reset_password(
             db=db,
@@ -184,16 +284,37 @@ def reset_password(data: PasswordResetInput, request: Request, db: Session = Dep
 
 
 @router.get("/me", response_model=UserResponse)
-def me(current_user=Depends(get_current_user)):
+def me(current_user=Depends(get_current_user)) -> UserResponse:
     """
-    Return current authenticated user (AuthService.get_current_user should be a dependency wrapper).
+    Return the currently authenticated user.
+
+    :param current_user: The user extracted from the access token.
+    :type current_user: User
+
+    :return: The authenticated user's profile.
+    :rtype: UserResponse
     """
 
     return current_user
 
 
 @router.post("/send-verification-email", response_model=Message)
-def send_email_verification(email: EmailStr = Body(...), db: Session = Depends(get_db)):
+def send_email_verification(email: EmailStr = Body(...), db: Session = Depends(get_db)) -> Message:
+    """
+    Send a verification email to a user, if the account is not already verified.
+
+    Does not reveal if the user exists.
+
+    :param email: Email address to verify.
+    :type email: EmailStr
+
+    :param db: Active database session.
+    :type db: Session
+
+    :return: Success message.
+    :rtype: Message
+    """
+
     email = str(email).lower().strip()
 
     user = UserRepository.get_by_email(db, email)
@@ -212,7 +333,22 @@ def send_email_verification(email: EmailStr = Body(...), db: Session = Depends(g
 
 
 @router.get("/verify-email", response_model=Message)
-def verify_email(token: str, db: Session = Depends(get_db)):
+def verify_email(token: str, db: Session = Depends(get_db)) -> Message:
+    """
+    Verify a user's email using a JWT token.
+
+    :param token: Verification token sent to the user's email.
+    :type token: str
+
+    :param db: Active database session.
+    :type db: Session
+
+    :raises HTTPException: If the token is invalid or user does not exist.
+
+    :return: Confirmation message.
+    :rtype: Message
+    """
+
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         user_id = int(payload["sub"])
@@ -233,17 +369,3 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     db.refresh(user)
 
     return {"detail": "Email verified successfully"}
-
-# @router.post("/admin/dashboard")
-# def admin_dashboard(current_user: User = Depends(require_role("admin"))):
-#     return {"message": f"Welcome admin {current_user.email}"}
-#
-#
-# @router.post("/super/secret")
-# def secret_area(current_user: User = Depends(require_role("superadmin"))):
-#     return {"secret": "Top level info"}
-#
-#
-# @router.post("/user/profile")
-# def user_profile(current_user: User = Depends(require_role("user"))):
-#     return {"email": current_user.email, "role": current_user.role}

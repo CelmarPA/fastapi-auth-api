@@ -1,3 +1,5 @@
+# app/schemas/__init__.py
+
 from .user_schema import UserCreate, UserResponse
 from .auth_schema import Login
 from .token_schema import Token

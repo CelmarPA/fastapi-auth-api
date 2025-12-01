@@ -1,4 +1,4 @@
-# main.py
+# app/main.py
 
 """
 Main application entry point for the FastAPI service.
@@ -10,6 +10,8 @@ The application exposes a root endpoint ("/") used primarily for health checks.
 """
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.middleware import SlowAPIMiddleware
 from typing import Any
@@ -20,12 +22,24 @@ from app.database import engine, Base
 from app.routers import auth, admin_users, products
 
 
+from app.core.exception_handlers import (
+    http_exception_handler,
+    validation_exception_handler,
+    internal_exception_handler
+)
+
+
 # Initialize FastAPI instance
 app: Any = FastAPI(
     title="Auth API",
     description="Authentication and product management service.",
     version="1.0.0"
 )
+
+# Register global handlers
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, internal_exception_handler)
 
 # Attach the rate limiter instance to the FastAPI application state
 # SlowAPI uses this internally to enforce request throttling

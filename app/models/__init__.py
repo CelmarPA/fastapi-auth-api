@@ -1,3 +1,5 @@
+# app/models/__ini__.py
+
 from .user import User
 from .reset_token import ResetToken
 from .login_attempt import LoginAttempt
