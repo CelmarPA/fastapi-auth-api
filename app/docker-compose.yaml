@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: auth_api_db
+    restart: always
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypass
+      POSTGRES_DB: authdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: auth_api
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://myuser:mypass@db:5432/authdb
+      SECRET_KEY: "your-secrety-key-here"
+      BREVO_API_KEY: "your-brevo-api-key-here"
+      MAIL_SENDER: "contato@suaempresa.com"
+      FRONTEND_URL: "http://localhost:3000"
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:
