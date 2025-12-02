@@ -14,6 +14,7 @@ from typing import List
 
 from app.models import User
 from app.repositories.user_repository import UserRepository
+from app.schemas import Message
 
 
 class UserService:

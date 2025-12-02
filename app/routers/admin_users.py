@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.core.permissions import admin_required, superadmin_required
 from app.database import get_db
+from app.schemas import Message
 from app.schemas.user_schema import UserListItem, UserDetail, UserUpdate
 from app.services.user_service import UserService
 
@@ -182,7 +183,7 @@ def delete_user(
     return {"detail": f"User {user_id} deleted"}
 
 
-@router.get("/dashboard", dependencies=[Depends(admin_required)])
+@router.get("/admin/dashboard", dependencies=[Depends(admin_required)])
 def admin_dashboard() -> dict:
     """
     Returns a simple response for validating admin access.
