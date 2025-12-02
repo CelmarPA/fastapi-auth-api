@@ -19,7 +19,7 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the project
-COPY . .
+COPY app .
 
 # Port used by the Render
 EXPOSE 8000

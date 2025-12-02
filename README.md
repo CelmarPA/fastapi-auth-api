@@ -114,13 +114,14 @@ auth_api/
 │ │ └── user_service.py
 │ │
 │ ├── tests/
-│ │ ├── test_auth_login.py
+| | ├── conftest.py
 │ │ ├── test_auth_logout.py
 │ │ ├── test_auth_password_reset.py
 │ │ ├── test_auth_refresh.py
 │ │ ├── test_auth_register.py
 │ │ ├── test_auth_roles.py
 │ │ ├── test_auth_security.py
+│ │ ├── test_auto_crud.py
 │ │ ├── test_email_service.py
 │ │ ├── test_products.py
 │ │ ├── test_refresh_tokens.py
@@ -128,15 +129,14 @@ auth_api/
 │ │
 │ ├── database.py
 │ ├── main.py
-│ └── init.py
+│ └── __init__.py
 │
 ├── docker-compose.yaml
 ├── Dockerfile
 ├── pytest.ini
-├── .env
 ├── .env.example
-├── .gitignore
-└── README.md
+├── README.md
+└── requirements.txt
 ```
 
 ---
