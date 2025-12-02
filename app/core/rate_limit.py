@@ -9,6 +9,8 @@ The limiter uses the client's IP address as the unique identifier
 for counting requests.
 """
 
+import os
+
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -20,3 +22,5 @@ from slowapi.util import get_remote_address
 # per client IP address. This function extracts the IP from the request,
 # automatically working behind proxies if configured properly
 limiter = Limiter(key_func=get_remote_address)
+if os.getenv("TESTING") == "1":
+    limiter.enabled = False

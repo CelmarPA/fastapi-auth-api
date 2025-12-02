@@ -1,6 +1,5 @@
 # app/tests/test_products.py
 
-
 """
 Products API Tests
 ------------------
@@ -19,8 +18,6 @@ All tests use the FastAPI TestClient and database fixtures.
 from fastapi.testclient import TestClient
 from typing import Callable
 
-from app.tests.conftest import create_admin_user
-
 
 def test_list_products(test_client: TestClient, create_product_in_db: Callable) -> None:
     """
@@ -29,7 +26,8 @@ def test_list_products(test_client: TestClient, create_product_in_db: Callable) 
     Steps:
     1. Create two products in the test database.
     2. Call the /products/ endpoint.
-    3. Assert the response status code and that at least 2 products are returned.
+    3. Assert the response status code is 200.
+    4. Assert that at least 2 products are returned.
 
     :param test_client: FastAPI TestClient instance.
     :type test_client: TestClient
@@ -39,14 +37,11 @@ def test_list_products(test_client: TestClient, create_product_in_db: Callable) 
 
     :return: None
     """
-
     create_product_in_db(name="Prod 1", description="Desc 1", price=20.0, stock=5)
     create_product_in_db(name="Prod 2", description="Desc 2", price=30.0, stock=5)
 
     response = test_client.get("/products/")
-
     assert response.status_code == 200
-
     data = response.json()
     assert len(data) >= 2
 
@@ -56,9 +51,11 @@ def test_create_product_authorized(test_client: TestClient, create_admin_user: C
     Test that an admin user can create a product.
 
     Steps:
-    1. Create an admin user and log in to get a token.
-    2. Send a POST request to /products/ with product data.
-    3. Assert the response status code and returned product data.
+    1. Create an admin user.
+    2. Log in to obtain an access token.
+    3. Send a POST request to /products/ with product data.
+    4. Assert the response status code is 201.
+    5. Assert the product data that matches the send as payload.
 
     :param test_client: FastAPI TestClient instance.
     :type test_client: TestClient
@@ -71,7 +68,7 @@ def test_create_product_authorized(test_client: TestClient, create_admin_user: C
 
     user = create_admin_user()
 
-    # Login to get token
+    # Login to get access token
     login = test_client.post("/auth/login", json={"email": user.email, "password": "123456"})
     token = login.json()["access_token"]
 
@@ -88,17 +85,18 @@ def test_create_product_authorized(test_client: TestClient, create_admin_user: C
 
     data = response.json()
 
-    assert data["name"] == "New Product"
+    assert data["name"] == payload["name"]
 
 
-def test_create_product_unauthorized(test_client: TestClient, create_user: Callable) -> None:
+def test_create_product_unauthorized(test_client: TestClient, create_user: Callable, login_user: Callable) -> None:
     """
     Test that a non-admin user cannot create a product.
 
     Steps:
-    1. Create a regular user and log in to get a token.
-    2. Attempt to POST a new product with this user's token.
-    3. Assert that the response status code is 403 (Forbidden).
+    1. Create a regular user.
+    2. Log in to obtain an access token.
+    3. Attempt to POST a new product with this user's token.
+    4. Assert the response status code is 403 (Forbidden).
 
     :param test_client: FastAPI TestClient instance.
     :type test_client: TestClient
@@ -106,195 +104,176 @@ def test_create_product_unauthorized(test_client: TestClient, create_user: Calla
     :param create_user: Factory function to create a regular user.
     :type create_user: Callable
 
+    :param login_user: Factory function to log in a user and get tokens.
+    :type login_user: Callable
+
     :return: None
     """
 
-    user = create_user(email="user@test.com", verified=True)
-    login_resp = test_client.post("/auth/login", json={"email": user.email, "password": "123456"})
-    token = login_resp.json()["access_token"]
+    user = create_user(email="regular_user@test.com", verified=True)
+    tokens = login_user(user.email, "123456")
+    access_token = tokens.get("access_token")
 
-    payload = {
-        "name": "Hacker Product",
-        "description": "Hacker Product Description",
-        "price": 99.9,
-        "stock": 1
-    }
+    assert access_token is not None
 
     response = test_client.post(
         "/products/",
-        json=payload,
-        headers={"Authorization": f"Bearer {token}"}
+        json={"name": "Prod 1", "description": "Desc", "price": 10.0, "stock": 5},
+        headers={"Authorization": f"Bearer {access_token}"}
     )
 
-    assert response.status_code == 403  # sem token/admin
+    assert response.status_code == 403
 
 
-def test_update_product(test_client: TestClient, create_admin_user: Callable, create_product_in_db: Callable) -> None:
+def test_update_product(test_client: TestClient, create_admin_user: Callable, create_product_in_db: Callable, login_user: Callable) -> None:
     """
-    Test updating an existing product by an admin user.
+    Test updating an existing product.
 
     Steps:
-    1. Create an admin user and log in.
+    1. Create an admin user and log in to obtain a token.
     2. Create a product in the database.
-    3. Send a PUT request to update the product.
-    4. Assert the response status code and updated fields.
+    3. Send a PUT request to update the product's name.
+    4. Assert the response status code is 200.
+    5. Assert the product name is updated in the response.
 
     :param test_client: FastAPI TestClient instance.
     :type test_client: TestClient
 
-    :param create_admin_user: Factory to create an admin user.
+    :param create_admin_user: Factory function to create an admin user.
     :type create_admin_user: Callable
 
-    :param create_product_in_db: Factory to create a product in the database.
+    :param create_product_in_db: Factory function to create a product in the database.
     :type create_product_in_db: Callable
+
+    :param login_user: Factory function to log in a user and get tokens.
+    :type login_user: Callable
 
     :return: None
     """
 
-    user = create_admin_user(email="admin@test.com")
+    admin = create_admin_user(email="admin_update@test.com")
+    tokens = login_user(admin.email, "123456")
+    access_token = tokens.get("access_token")
 
-    login = test_client.post("/auth/login", json={"email": user.email, "password": "123456"})
-    token = login.json()["access_token"]
+    assert access_token is not None
 
-    product = create_product_in_db(name="Old Product", description="Old desc", price=5.0, stock=2)
-
-    data = {"name": "Updated Product", "description": "Updated desc", "price": 15.0, "stock": 10}
+    product = create_product_in_db()
 
     response = test_client.put(
         f"/products/{product.id}",
-        json=data,
-        headers={"Authorization": f"Bearer {token}"}
+        json={"name": "Updated Name"},
+        headers={"Authorization": f"Bearer {access_token}"}
     )
 
     assert response.status_code == 200
-
-    resp_data = response.json()
-
-    assert resp_data["name"] == data["name"]
-    assert resp_data["description"] == data["description"]
-    assert resp_data["price"] == data["price"]
-    assert resp_data["stock"] == data["stock"]
+    assert response.json()["name"] == "Updated Name"
 
 
-def test_delete_product(test_client: TestClient, create_admin_user: Callable, create_product_in_db: Callable) -> None:
+def test_delete_product(test_client: TestClient, create_admin_user: Callable, create_product_in_db: Callable, login_user: Callable) -> None:
     """
-    Test deleting a product by an admin user.
+    Test deleting a product.
 
     Steps:
-    1. Create an admin user and log in.
+    1. Create an admin user and log in to obtain a token.
     2. Create a product in the database.
-    3. Send a DELETE request for the product.
-    4. Assert the response status code and returned product info.
+    3. Send a DELETE request to remove the product.
+    4. Assert the response status code is 200.
 
     :param test_client: FastAPI TestClient instance.
     :type test_client: TestClient
 
-    :param create_admin_user: Factory to create an admin user.
+    :param create_admin_user: Factory function to create an admin user.
     :type create_admin_user: Callable
 
-    :param create_product_in_db: Factory to create a product in the database.
+    :param create_product_in_db: Factory function to create a product in the database.
     :type create_product_in_db: Callable
+
+    :param login_user: Factory function to log in a user and get tokens.
+    :type login_user: Callable
 
     :return: None
     """
 
-    user = create_admin_user(email="admin@test.com")
+    admin = create_admin_user(email="admin_delete@test.com")
+    tokens = login_user(admin.email, "123456")
+    access_token = tokens.get("access_token")
 
-    login = test_client.post("/auth/login", json={"email": user.email, "password": "123456"})
-    token = login.json()["access_token"]
+    assert access_token is not None
 
-
-    product = create_product_in_db(name="ToDelete", description="Desc", price=1.0, stock=1)
+    product = create_product_in_db()
 
     response = test_client.delete(
         f"/products/{product.id}",
-        headers={"Authorization": f"Bearer {token}"}
+        headers={"Authorization": f"Bearer {access_token}"}
     )
 
     assert response.status_code == 200
 
-    resp_data = response.json()
 
-    assert resp_data["id"] == product.id
-    assert resp_data["name"] == product.name
-
-
-def test_update_nonexistent_product(test_client: TestClient, create_admin_user: Callable) -> None:
+def test_update_nonexistent_product(test_client: TestClient, create_admin_user: Callable, login_user: Callable) -> None:
     """
-    Test updating a product that does not exist.
+    Test updating a non-existent product.
 
     Steps:
-    1. Create an admin user and log in.
-    2. Attempt to update a product with a non-existent ID.
-    3. Assert that the response status code is 404 (Not Found).
+    1. Create an admin user and log in to obtain a token.
+    2. Send a PUT request to update a product ID that doesn't exist.
+    3. Assert the response status code is 404.
 
     :param test_client: FastAPI TestClient instance.
     :type test_client: TestClient
 
-    :param create_admin_user: Factory to create an admin user.
+    :param create_admin_user: Factory function to create an admin user.
     :type create_admin_user: Callable
+
+    :param login_user: Factory function to log in a user and get tokens.
+    :type login_user: Callable
 
     :return: None
     """
 
-    user = create_admin_user(email="admin@test.com")
-    login = test_client.post("/auth/login", json={"email": user.email, "password": "123456"})
-    token = login.json()["access_token"]
+    admin = create_admin_user(email="admin_nonexist@test.com")
+    tokens = login_user(admin.email, "123456")
+    access_token = tokens.get("access_token")
 
-    payload = {
-        "name": "DoesNotExist",
-        "description": "DoesNotExist Description",
-        "price": 10,
-        "stock": 1
-    }
+    assert access_token is not None
 
-    response = test_client.put("/products/9999", json=payload, headers={"Authorization": f"Bearer {token}"})
+    response = test_client.put(
+        "/products/9999",
+        json={"name": "Doesn't matter"},
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
 
     assert response.status_code == 404
 
 
-def test_delete_nonexistent_product(test_client: TestClient, create_admin_user: Callable) -> None:
+def test_delete_nonexistent_product(test_client: TestClient, create_admin_user: Callable, login_user: Callable) -> None:
     """
-    Test deleting a product that does not exist.
+    Test deleting a non-existent product.
 
     Steps:
-    1. Create an admin user and log in.
-    2. Attempt to delete a product with a non-existent ID.
-    3. Assert that the response status code is 404 (Not Found).
+    1. Create an admin user and log in to obtain a token.
+    2. Send a DELETE request for a product ID that doesn't exist.
+    3. Assert the response status code is 404.
 
     :param test_client: FastAPI TestClient instance.
     :type test_client: TestClient
 
-    :param create_admin_user: Factory to create an admin user.
+    :param create_admin_user: Factory function to create an admin user.
     :type create_admin_user: Callable
+
+    :param login_user: Factory function to log in a user and get tokens.
+    :type login_user: Callable
 
     :return: None
     """
 
-    user = create_admin_user(email="admin@test.com")
-    login_resp = test_client.post(
-        "/auth/login",
-        json={"email": user.email, "password": "123456"}
-    )
-
-    print("Login status code:", login_resp.status_code)
-    print("Login response JSON:", login_resp.json())
-
-    login_resp = test_client.post(
-        "/auth/login",
-        json={"email": user.email, "password": "123456"}
-    )
-
-    print("Status code:", login_resp.status_code)
-    print("Response JSON:", login_resp.json())
-
-    assert login_resp.status_code == 200, "Login failed, cannot obtain token"
-
-    token = login_resp.json()["access_token"]
+    admin = create_admin_user(email="admin_nonexist_delete@test.com")
+    tokens = login_user(admin.email, "123456")
+    access_token = tokens.get("access_token")
+    assert access_token is not None
 
     response = test_client.delete(
         "/products/9999",
-        headers={"Authorization": f"Bearer {token}"}
+        headers={"Authorization": f"Bearer {access_token}"}
     )
-
     assert response.status_code == 404

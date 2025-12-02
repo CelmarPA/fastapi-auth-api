@@ -1,41 +1,57 @@
 # app/tests/test_auth_refresh.py
 
 """
-Refresh Token Tests
-------------------
+Refresh Token Endpoint Tests
+----------------------------
 
-This module tests the refresh token functionality of the authentication API.
+This module contains tests for the refresh token functionality of the authentication API.
 
-Test included:
-- test_refresh_token: Ensure that a valid refresh token can be used to obtain new access and refresh tokens.
+Tests included:
+- test_refresh_token: Verify that a valid refresh token can be used
+  to obtain new access and refresh tokens.
 """
 
 from fastapi.testclient import TestClient
 from typing import Callable
 
 
-def test_refresh_token(test_client: TestClient, create_user: Callable):
+def test_refresh_token(test_client: TestClient, create_user: Callable, login_user: Callable) -> None:
     """
-    Test successful refresh of tokens.
+    Test that a refresh token can be used to get new tokens.
 
     Steps:
     1. Create a verified user.
-    2. Login to get access and refresh tokens.
-    3. Call the refresh endpoint with the refresh token.
-    4. Assert that the response status code is 200.
-    5. Assert that the response contains a new access token.
+    2. Log in the user to obtain access and refresh tokens.
+    3. Call the /auth/refresh endpoint with the refresh token.
+    4. Verify that the response status is 200.
+    5. Check that the response contains a new access token.
 
-    :param test_client: TestClient fixture for API requests.
+    :param test_client: FastAPI TestClient instance for making requests
     :type test_client: TestClient
 
-    :param create_user: Fixture to create a test user.
+    :param create_user: Factory fixture to create a test user
     :type create_user: Callable
+
+    :param login_user: Fixture to log in a user and obtain tokens
+    :type login_user: Callable
+
+    :return: None
     """
 
-    create_user()       # default verified=True
-    login = test_client.post("/auth/login", json={"email": "user@test.com", "password": "123456"})
-    refresh = login.json()["refresh_token"]
+    # Step 1: create a verified user
+    user = create_user(email="refresh_user@test.com", verified=True)
 
-    response = test_client.post("/auth/refresh", json={"refresh_token": refresh})
+    # Step 2: log in to obtain tokens
+    tokens = login_user(user.email, "123456")
+    refresh_token = tokens.get("refresh_token")
+    assert refresh_token is not None
+
+    # Step 3: call refresh endpoint
+    response = test_client.post("/auth/refresh", json={"refresh_token": refresh_token})
+
+    # Step 4: assert HTTP status
     assert response.status_code == 200
-    assert "access_token" in response.json()
+
+    # Step 5: verify response contains new access token
+    data = response.json()
+    assert "access_token" in data

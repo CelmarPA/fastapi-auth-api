@@ -125,9 +125,8 @@ def create_product(
 @router.put("/{product_id}", response_model=ProductOut, dependencies=[Depends(admin_required)])
 def update_product(
     product_id: int,
-    data: ProductUpdate,
-    db: Session = Depends(get_db),
-
+    product_in: ProductUpdate,
+    db: Session = Depends(get_db)
 ) -> Product:
     """
     Update an existing product. Admin or superadmin only.
@@ -135,8 +134,8 @@ def update_product(
     :param product_id: ID of the product to update.
     :type product_id: int
 
-    :param data: Fields to update.
-    :type data: ProductUpdate
+    :param product_in: Fields to update.
+    :type product_in: ProductUpdate
 
     :param db: Active database session.
     :type db: Session
@@ -150,8 +149,10 @@ def update_product(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    for filed, value in data.model_dump().items():
-        setattr(product, filed, value)
+    update_data = product_in.model_dump(exclude_unset=True)
+
+    for key, value in update_data.items():
+        setattr(product, key, value)
 
     db.commit()
     db.refresh(product)

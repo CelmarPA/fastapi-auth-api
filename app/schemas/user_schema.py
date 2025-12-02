@@ -122,6 +122,6 @@ class UserResponse(BaseModel):
 
     id: int
     email: EmailStr
-    role: str
+    role: str = "User"
 
     model_config = ConfigDict(from_attributes=True)
