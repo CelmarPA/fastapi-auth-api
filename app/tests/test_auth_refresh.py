@@ -11,9 +11,10 @@ Test included:
 """
 
 from fastapi.testclient import TestClient
+from typing import Callable
 
 
-def test_refresh_token(test_client: TestClient, create_user):
+def test_refresh_token(test_client: TestClient, create_user: Callable):
     """
     Test successful refresh of tokens.
 
@@ -25,7 +26,10 @@ def test_refresh_token(test_client: TestClient, create_user):
     5. Assert that the response contains a new access token.
 
     :param test_client: TestClient fixture for API requests.
+    :type test_client: TestClient
+
     :param create_user: Fixture to create a test user.
+    :type create_user: Callable
     """
 
     create_user()       # default verified=True

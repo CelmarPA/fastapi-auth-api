@@ -61,12 +61,12 @@ class SecurityLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     email = Column(String, index=True, nullable=True)
-    action = Column(String, index=True, nullable=False)
+    action = Column(String, nullable=False)
     ip = Column(String, index=True, nullable=True)
-    path = Column(String, index=True, nullable=False)
-    method = Column(String, index=True, nullable=False)
-    status_code = Column(String, index=True, nullable=False)  # success / fail
-    detail = Column(String, index=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    path = Column(String, nullable=False)
+    method = Column(String, nullable=False)
+    status_code = Column(String, nullable=False)  # success / fail
+    detail = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
 
     user = relationship("User", lazy="joined")

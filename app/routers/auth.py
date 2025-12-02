@@ -66,24 +66,14 @@ def register_user(user_data: UserCreate, request: Request, db: Session = Depends
     :rtype: UserResponse
     """
 
-    try:
-        user = AuthService.register(
-            db=db,
-            email=user_data.email,
-            password=user_data.password,
-            request=request
-        )
+    user = AuthService.register(
+        db=db,
+        email=user_data.email,
+        password=user_data.password,
+        request=request
+    )
 
-        return user
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+    return user
 
 
 @router.post("/login", response_model=Token)
@@ -112,24 +102,14 @@ def login(
     :rtype: Token
     """
 
-    try:
-        result = AuthService.login(
-            db,
-            email=user_data.email,
-            password=user_data.password,
-            ip=request.client.host,
-            request=request)
+    result = AuthService.login(
+        db,
+        email=user_data.email,
+        password=user_data.password,
+        ip=request.client.host,
+        request=request)
 
-        return result
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+    return result
 
 
 @router.post("/refresh", response_model=Token)
@@ -150,23 +130,13 @@ def refresh_token(payload: RefreshTokenRequest, request: Request, db: Session = 
     :rtype: Token
     """
 
-    try:
-        result = AuthService.refresh(
-            db=db,
-            refresh_token=payload.refresh_token,
-            request=request
-        )
+    result = AuthService.refresh(
+        db=db,
+        refresh_token=payload.refresh_token,
+        request=request
+    )
 
-        return result
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+    return result
 
 
 @router.post("/logout", response_model=Message)
@@ -187,23 +157,13 @@ def logout(data: LogoutRequest, request: Request, db: Session = Depends(get_db))
     :rtype: Message
     """
 
-    try:
-        result = AuthService.logout(
-            db=db,
-            refresh_token=data.refresh_token,
-            request=request
-        )
+    result = AuthService.logout(
+        db=db,
+        refresh_token=data.refresh_token,
+        request=request
+    )
 
-        return result
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+    return result
 
 
 @router.post("/request-password-reset", response_model=Message)
@@ -226,23 +186,13 @@ def request_password_reset(data: PasswordResetRequest, request: Request, db: Ses
     :rtype: Message
     """
 
-    try:
-        result = AuthService.request_password_reset(
-            db=db,
-            email=data.email,
-            request=request
-        )
+    result = AuthService.request_password_reset(
+        db=db,
+        email=data.email,
+        request=request
+    )
 
-        return result
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+    return result
 
 
 @router.post("/reset-password", response_model=Message)
@@ -263,24 +213,14 @@ def reset_password(data: PasswordResetInput, request: Request, db: Session = Dep
     :rtype: Message
     """
 
-    try:
-        result = AuthService.reset_password(
-            db=db,
-            token=data.token,
-            new_password=data.new_password,
-            request=request
-        )
+    result = AuthService.reset_password(
+        db=db,
+        token=data.token,
+        new_password=data.new_password,
+        request=request
+    )
 
-        return result
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+    return result
 
 
 @router.get("/me", response_model=UserResponse)

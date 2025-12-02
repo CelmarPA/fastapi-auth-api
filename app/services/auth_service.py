@@ -15,6 +15,7 @@ Provides core authentication operations:
 All security events are logged via `log_security_event`.
 """
 
+from datetime import datetime, timezone
 from fastapi import HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import Any, Dict
@@ -230,17 +231,23 @@ class AuthService:
 
         :raises HTTPException: If refresh token is invalid.
         """
+
         token_data = TokenRepository.find_valid(db, refresh_token)
 
-        if not token_data:
+        expires_at = token_data.expires_at
+        if expires_at.tzinfo is None:  # naive
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        if not token_data or expires_at < datetime.now(timezone.utc):
             log_security_event(
                 db,
                 "refresh_invalid",
                 "fail",
                 "Invalid refresh token",
-                request)
+                request
+            )
 
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired refresh token")
 
         # Rotate token
         TokenRepository.revoke(db, token_data)
