@@ -6,22 +6,31 @@ An **Enterprise-grade Authentication, Authorization & Product Management API** b
 
 ## 📘 Table of Contents
 
-- Overview
-- Key Features
-- Project Architecture
-- Technologies
-- Installation
-- Environment Variables
-- Running the Project
-- Documentation & Postman
-- Authentication & Token Flow
-- Permissions & RBAC
-- Directory Structure
-- Tests
-- Docker
-- License
-- Author
-- Feedback
+- [🚀 FastAPI Auth API](#-fastapi-auth-api)
+- [🔥 Overview](#-overview)
+- [⚡ Key Features](#-key-features)
+  - [🔐 Authentication & Security](#-authentication--security)
+  - [👮 RBAC – Role-Based Access Control](#-rbac--role-based-access-control)
+  - [🛍 Product Management](#-product-management)
+  - [📩 Email Service](#-email-service)
+  - [🧪 Tests Routines](#-tests-routines)
+- [🏗 Project Architecture](#-project-architecture)
+- [🛠 Technologies](#-technologies)
+- [💻 Installation](#-installation)
+- [⚙ Environment Variables](#-environment-variables)
+- [▶ Running the Project](#-running-the-project)
+- [📘 Documentation & Postman](#-documentation--postman)
+- [🔑 Authentication & Token Flow](#-authentication--token-flow)
+  - [➜🚪 Login](#-login)
+  - [🎫 Refresh Token](#-refresh-token)
+  - [⏻ Logout](#-logout)
+- [🧩 Permissions & RBAC](#-permissions--rbac)
+- [📂 Directory Structure](#-directory-structure)
+- [🧪 Tests](#-tests)
+- [🐳 Docker](#-docker)
+- [📜 License](#-license)
+- [👤 Author](#-author)
+- [💬 Feedback](#-feedback)
 
 ---
 
@@ -191,17 +200,19 @@ Includes:
 
 ## 🔑 Authentication & Token Flow
 
-### Login
+### ➜🚪 Login
 
 POST /auth/login
 
-### Refresh Token
+### 🎫 Refresh Token
 
 POST /auth/refresh
 
-### Logout
+### ⏻ Logout
 
 POST /auth/logout
+
+---
 
 ## 🧩 Permissions & RBAC
 
