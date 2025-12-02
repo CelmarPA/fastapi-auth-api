@@ -20,6 +20,8 @@ An **Enterprise-grade Authentication, Authorization & Product Management API** b
 - Tests
 - Docker
 - License
+- Author
+- Feedback
 
 ---
 
@@ -80,6 +82,8 @@ Includes:
 - Powerful fixtures  
 - Email mocking  
 - Tests for refresh token flow, security, rate limiting, roles, products, and more  
+
+![Auth API Screenshot](screenshot.png)
 
 ---
 
@@ -317,4 +321,20 @@ Includes:
 
 ## 📜 License
 
-MIT License
+This project is open-source and free to use for learning or personal projects.  
+Licensed under the **MIT License**.
+
+---
+
+## 👤 Author
+
+**Celmar Pereira**
+
+- [GitHub](https://github.com/CelmarPA)
+- [LinkedIn](https://www.linkedin.com/in/celmar-pereira-de-andrade/)
+
+---
+
+## 💬 Feedback
+
+Enjoy the app and feel free to suggest improvements or open issues!
